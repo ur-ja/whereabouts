@@ -69,7 +69,12 @@ jobs:
       - name: Build unsigned archive
         run: |
           set -euo pipefail
-          WORKSPACE=$(ls ios/*.xcworkspace | head -1)
+          WORKSPACE=$(find ios -maxdepth 1 -name '*.xcworkspace' | head -1)
+          if [ -z "$WORKSPACE" ]; then
+            echo "::error::No .xcworkspace found in ios/"
+            ls -la ios/
+            exit 1
+          fi
           SCHEME=$(basename "$WORKSPACE" .xcworkspace)
           echo "Using workspace=$WORKSPACE scheme=$SCHEME"
 
