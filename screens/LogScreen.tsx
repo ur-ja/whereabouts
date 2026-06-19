@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   Animated,
   Keyboard,
-  KeyboardAvoidingView,
   Platform,
   Pressable,
   ScrollView,
@@ -10,9 +9,7 @@ import {
   Text,
   View,
 } from 'react-native';
-import { useHeaderHeight } from '@react-navigation/elements';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card } from '../components/Card';
 import { DateCard } from '../components/DateCard';
 import { JournalField } from '../components/JournalField';
@@ -74,31 +71,41 @@ export default function LogScreen() {
   const isEditingRef = useRef(isEditing);
   const formOpacity = useRef(new Animated.Value(1)).current;
   const scrollRef = useRef<ScrollView>(null);
-  const headerHeight = useHeaderHeight();
-  const insets = useSafeAreaInsets();
-  const [keyboardHeight, setKeyboardHeight] = useState(0);
-
-  const scrollToJournal = useCallback(() => {
-    requestAnimationFrame(() => {
-      scrollRef.current?.scrollToEnd({ animated: true });
-    });
-  }, []);
+  const contentRef = useRef<View>(null);
+  const journalRef = useRef<View>(null);
+  const [keyboardVisible, setKeyboardVisible] = useState(false);
 
   useEffect(() => {
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
 
-    const onShow = Keyboard.addListener(showEvent, (event) => {
-      setKeyboardHeight(event.endCoordinates.height);
-      setTimeout(scrollToJournal, Platform.OS === 'ios' ? 100 : 0);
-    });
-    const onHide = Keyboard.addListener(hideEvent, () => setKeyboardHeight(0));
+    const onShow = Keyboard.addListener(showEvent, () => setKeyboardVisible(true));
+    const onHide = Keyboard.addListener(hideEvent, () => setKeyboardVisible(false));
 
     return () => {
       onShow.remove();
       onHide.remove();
     };
-  }, [scrollToJournal]);
+  }, []);
+
+  const scrollToJournal = useCallback(() => {
+    const content = contentRef.current;
+    const journal = journalRef.current;
+    if (!content || !journal) return;
+
+    setTimeout(() => {
+      journal.measureLayout(
+        content,
+        (_x, y) => {
+          scrollRef.current?.scrollTo({
+            y: Math.max(0, y - spacing.lg),
+            animated: true,
+          });
+        },
+        () => {},
+      );
+    }, Platform.OS === 'ios' ? 250 : 100);
+  }, []);
 
   selectedDateRef.current = selectedDate;
   isEditingRef.current = isEditing;
@@ -240,23 +247,21 @@ export default function LogScreen() {
   const showEdit = hasSavedEntry && !isEditing;
   const viewingToday = isToday(selectedDate);
 
-  const keyboardInset = keyboardHeight > 0 ? Math.max(0, keyboardHeight - insets.bottom) : 0;
-
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      keyboardVerticalOffset={headerHeight}
-    >
+    <View style={styles.flex}>
       <ScrollView
         ref={scrollRef}
         automaticallyAdjustKeyboardInsets
-        contentContainerStyle={[styles.container, keyboardInset > 0 && { paddingBottom: keyboardInset + spacing.xl }]}
+        contentContainerStyle={[
+          styles.container,
+          keyboardVisible && styles.containerWithKeyboard,
+        ]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         onScrollBeginDrag={Keyboard.dismiss}
         showsVerticalScrollIndicator={false}
       >
+        <View ref={contentRef} collapsable={false} style={styles.content}>
         <DateCard
           selectedDate={selectedDate}
           canGoForward={canGoForward}
@@ -293,18 +298,20 @@ export default function LogScreen() {
             />
           </Card>
 
-          <Card>
-            <SectionHeader icon="file-text" title="Journal" />
-            <JournalField
-              note={note}
-              onChange={setNote}
-              editable={isEditing}
-              isToday={viewingToday}
-              onFocus={scrollToJournal}
-            />
-          </Card>
+          <View ref={journalRef} collapsable={false}>
+            <Card>
+              <SectionHeader icon="file-text" title="Journal" />
+              <JournalField
+                note={note}
+                onChange={setNote}
+                editable={isEditing}
+                isToday={viewingToday}
+                onFocus={scrollToJournal}
+              />
+            </Card>
+          </View>
 
-          {isEditing && (
+          {isEditing && !keyboardVisible && (
             <Pressable
               style={[styles.saveButton, saving && styles.saveButtonDisabled]}
               onPress={handleSave}
@@ -316,11 +323,12 @@ export default function LogScreen() {
             </Pressable>
           )}
         </Animated.View>
+        </View>
       </ScrollView>
 
       <KeyboardDoneBar />
       <Toast message={toast.message} visible={toast.visible} />
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 
@@ -330,6 +338,12 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     gap: spacing.md,
     paddingBottom: spacing.xl * 2,
+  },
+  containerWithKeyboard: {
+    paddingBottom: spacing.sm,
+  },
+  content: {
+    gap: spacing.md,
   },
   sections: {
     gap: spacing.md,
