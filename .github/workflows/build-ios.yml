@@ -99,6 +99,12 @@ jobs:
             exit 1
           fi
 
+          # Ad-hoc sign nested binaries so AltStore can re-sign for install
+          find "$APP_PATH" -type d \( -name "*.framework" -o -name "*.appex" \) | while read -r bundle; do
+            codesign --force --sign - "$bundle" || true
+          done
+          codesign --force --deep --sign - "$APP_PATH"
+
           mkdir -p "$RUNNER_TEMP/Payload"
           cp -R "$APP_PATH" "$RUNNER_TEMP/Payload/"
           cd "$RUNNER_TEMP"

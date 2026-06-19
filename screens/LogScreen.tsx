@@ -10,7 +10,9 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useHeaderHeight } from '@react-navigation/elements';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Card } from '../components/Card';
 import { DateCard } from '../components/DateCard';
 import { JournalField } from '../components/JournalField';
@@ -71,6 +73,32 @@ export default function LogScreen() {
   const selectedDateRef = useRef(selectedDate);
   const isEditingRef = useRef(isEditing);
   const formOpacity = useRef(new Animated.Value(1)).current;
+  const scrollRef = useRef<ScrollView>(null);
+  const headerHeight = useHeaderHeight();
+  const insets = useSafeAreaInsets();
+  const [keyboardHeight, setKeyboardHeight] = useState(0);
+
+  const scrollToJournal = useCallback(() => {
+    requestAnimationFrame(() => {
+      scrollRef.current?.scrollToEnd({ animated: true });
+    });
+  }, []);
+
+  useEffect(() => {
+    const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
+    const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
+
+    const onShow = Keyboard.addListener(showEvent, (event) => {
+      setKeyboardHeight(event.endCoordinates.height);
+      setTimeout(scrollToJournal, Platform.OS === 'ios' ? 100 : 0);
+    });
+    const onHide = Keyboard.addListener(hideEvent, () => setKeyboardHeight(0));
+
+    return () => {
+      onShow.remove();
+      onHide.remove();
+    };
+  }, [scrollToJournal]);
 
   selectedDateRef.current = selectedDate;
   isEditingRef.current = isEditing;
@@ -212,13 +240,18 @@ export default function LogScreen() {
   const showEdit = hasSavedEntry && !isEditing;
   const viewingToday = isToday(selectedDate);
 
+  const keyboardInset = keyboardHeight > 0 ? Math.max(0, keyboardHeight - insets.bottom) : 0;
+
   return (
     <KeyboardAvoidingView
       style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={headerHeight}
     >
       <ScrollView
-        contentContainerStyle={styles.container}
+        ref={scrollRef}
+        automaticallyAdjustKeyboardInsets
+        contentContainerStyle={[styles.container, keyboardInset > 0 && { paddingBottom: keyboardInset + spacing.xl }]}
         keyboardShouldPersistTaps="handled"
         keyboardDismissMode="on-drag"
         onScrollBeginDrag={Keyboard.dismiss}
@@ -267,6 +300,7 @@ export default function LogScreen() {
               onChange={setNote}
               editable={isEditing}
               isToday={viewingToday}
+              onFocus={scrollToJournal}
             />
           </Card>
 

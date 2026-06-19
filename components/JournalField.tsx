@@ -8,9 +8,10 @@ interface JournalFieldProps {
   onChange: (note: string) => void;
   editable: boolean;
   isToday: boolean;
+  onFocus?: () => void;
 }
 
-export function JournalField({ note, onChange, editable, isToday }: JournalFieldProps) {
+export function JournalField({ note, onChange, editable, isToday, onFocus }: JournalFieldProps) {
   const prompt = isToday ? "What's on your mind today?" : 'What were you thinking that day?';
 
   if (!editable) {
@@ -31,6 +32,7 @@ export function JournalField({ note, onChange, editable, isToday }: JournalField
           placeholderTextColor={colors.textMuted}
           value={note}
           onChangeText={(text) => onChange(text.slice(0, NOTE_MAX_LENGTH))}
+          onFocus={onFocus}
           inputAccessoryViewID={KEYBOARD_DONE_ID}
           textAlignVertical="top"
         />

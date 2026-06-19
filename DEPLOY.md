@@ -297,14 +297,27 @@ In Xcode: **Personal Team** signing → **Product → Archive** → **Distribute
 
 Upload the `.ipa` to iCloud Drive or email it to yourself → open on iPhone → save to **Files**.
 
-### E2. Install with AltStore (iPhone)
+### E2. Install with AltStore (Mac + iPhone)
 
-1. Open the **Files** app → find the `.ipa`.
-2. Tap the file → **Share** (square with arrow).
-3. Tap **AltStore** → **Install**.
+**AltServer must be running on your Mac during install** — AltStore re-signs the app through AltServer. Without it you get *"integrity could not be verified"*.
+
+1. **Mac:** plug in iPhone via USB (or same Wi‑Fi) → open **AltServer** (menu bar diamond icon).
+2. **iPhone:** open **AltStore** → **My Apps** → **+** (top left).
+3. Browse to the `.ipa` in **Files** → tap → **Install**.
 4. Wait ~30 seconds → **Whereabouts** appears on your home screen.
 
-**If AltStore isn't in the Share sheet:** Open AltStore → **My Apps** tab → **+** (top left) → browse to the `.ipa` in Files.
+**Don't** tap the `.ipa` directly in Files expecting iOS to install it — only AltStore can sign it.
+
+**If AltStore isn't in Share:** use the **+** button in AltStore (step 2), not Files → Share.
+
+### E2b. "Integrity could not be verified"
+
+1. **AltServer running on Mac** — menu bar icon visible, iPhone USB or same Wi‑Fi.
+2. **3-app limit** — free Apple ID allows 3 sideloaded apps (AltStore counts as 1). Remove an unused sideloaded app if you have 3.
+3. **Developer Mode** on — Settings → Privacy & Security → Developer Mode.
+4. **Trust** — Settings → General → VPN & Device Management → trust your Apple ID.
+5. **Re-download** the artifact from GitHub (don't rename the file).
+6. Install via AltStore **+** button, not by tapping the `.ipa` alone.
 
 ### E3. Open the app (iPhone)
 
