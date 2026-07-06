@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { useFocusEffect, useLocalSearchParams, useRouter } from 'expo-router';
+import { useAuth } from '../lib/auth';
 import { Card } from '../components/Card';
 import { DateCard } from '../components/DateCard';
 import { JournalField } from '../components/JournalField';
@@ -18,6 +19,7 @@ import { LeanSlider } from '../components/LeanSlider';
 import { SectionHeader } from '../components/SectionHeader';
 import { TagGrid } from '../components/TagGrid';
 import { Toast } from '../components/Toast';
+import { ViewingBanner } from '../components/ViewingBanner';
 import { colors, radius, spacing, typography } from '../constants/theme';
 import { confirmClearEntry } from '../lib/confirmClear';
 import {
@@ -41,6 +43,7 @@ function formFromEntry(entry: Entry | null | undefined) {
 function buildLocalEntry(date: string, lean: number, tags: string[], note: string, existing?: Entry | null): Entry {
   return {
     id: existing?.id ?? `local-${date}`,
+    user_id: existing?.user_id ?? '',
     date,
     lean,
     tags,
@@ -51,6 +54,8 @@ function buildLocalEntry(date: string, lean: number, tags: string[], note: strin
 
 export default function LogScreen() {
   const router = useRouter();
+  const { viewingPartner, isViewingPartner, viewSelf } = useAuth();
+  const ownerId = viewingPartner?.id;
   const { date: dateParam } = useLocalSearchParams<{ date?: string }>();
   const today = getTodayDateString();
   const [selectedDate, setSelectedDate] = useState(today);
@@ -69,6 +74,7 @@ export default function LogScreen() {
   const requestIdRef = useRef(0);
   const selectedDateRef = useRef(selectedDate);
   const isEditingRef = useRef(isEditing);
+  const isViewingPartnerRef = useRef(isViewingPartner);
   const formOpacity = useRef(new Animated.Value(1)).current;
   const scrollRef = useRef<ScrollView>(null);
   const contentRef = useRef<View>(null);
@@ -109,6 +115,7 @@ export default function LogScreen() {
 
   selectedDateRef.current = selectedDate;
   isEditingRef.current = isEditing;
+  isViewingPartnerRef.current = isViewingPartner;
 
   const showToast = useCallback((message: string) => {
     setToast({ message, visible: true });
@@ -123,7 +130,7 @@ export default function LogScreen() {
       setNote(form.note);
       setHasSavedEntry(!!entry);
       if (updateMode) {
-        setIsEditing(!entry);
+        setIsEditing(isViewingPartnerRef.current ? false : !entry);
       }
     },
     [],
@@ -157,7 +164,7 @@ export default function LogScreen() {
       }
 
       try {
-        const entry = await getEntryByDate(date);
+        const entry = await getEntryByDate(date, ownerId);
         if (requestId !== requestIdRef.current) return;
 
         cacheRef.current.set(date, entry);
@@ -176,8 +183,14 @@ export default function LogScreen() {
         }
       }
     },
-    [applyForm, fadeForm],
+    [applyForm, fadeForm, ownerId],
   );
+
+  useEffect(() => {
+    cacheRef.current.clear();
+    setSelectedDate(today);
+    loadEntry(today, { updateMode: true, animate: false });
+  }, [ownerId, today, loadEntry]);
 
   useEffect(() => {
     if (!dateParam || !/^\d{4}-\d{2}-\d{2}$/.test(dateParam) || isFutureDate(dateParam)) {
@@ -199,6 +212,7 @@ export default function LogScreen() {
   );
 
   const handleSave = async () => {
+    if (isViewingPartner) return;
     Keyboard.dismiss();
     setSaving(true);
 
@@ -244,8 +258,10 @@ export default function LogScreen() {
   };
 
   const canGoForward = !isToday(selectedDate);
-  const showEdit = hasSavedEntry && !isEditing;
+  const canEdit = !isViewingPartner;
+  const showEdit = canEdit && hasSavedEntry && !isEditing;
   const viewingToday = isToday(selectedDate);
+  const formEditable = canEdit && isEditing;
 
   return (
     <View style={styles.flex}>
@@ -262,11 +278,14 @@ export default function LogScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View ref={contentRef} collapsable={false} style={styles.content}>
+        {isViewingPartner && viewingPartner && (
+          <ViewingBanner partnerEmail={viewingPartner.email} onBack={viewSelf} />
+        )}
         <DateCard
           selectedDate={selectedDate}
           canGoForward={canGoForward}
           showEdit={showEdit}
-          showClear={hasSavedEntry}
+          showClear={canEdit && hasSavedEntry}
           onPrevious={() => setSelectedDate(addDays(selectedDate, -1))}
           onNext={() => {
             const next = addDays(selectedDate, 1);
@@ -283,7 +302,7 @@ export default function LogScreen() {
             <LeanSlider
               value={lean}
               onChange={setLean}
-              editable={isEditing}
+              editable={formEditable}
               isToday={viewingToday}
             />
           </Card>
@@ -294,7 +313,7 @@ export default function LogScreen() {
               selectedTags={tags}
               onChange={setTags}
               lean={lean}
-              editable={isEditing}
+              editable={formEditable}
             />
           </Card>
 
@@ -304,14 +323,14 @@ export default function LogScreen() {
               <JournalField
                 note={note}
                 onChange={setNote}
-                editable={isEditing}
+                editable={formEditable}
                 isToday={viewingToday}
                 onFocus={scrollToJournal}
               />
             </Card>
           </View>
 
-          {isEditing && !keyboardVisible && (
+          {formEditable && !keyboardVisible && (
             <Pressable
               style={[styles.saveButton, saving && styles.saveButtonDisabled]}
               onPress={handleSave}

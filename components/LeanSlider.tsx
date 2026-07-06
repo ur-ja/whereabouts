@@ -1,7 +1,8 @@
 import Slider from '@react-native-community/slider';
 import { Feather } from '@expo/vector-icons';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { colors, spacing, typography } from '../constants/theme';
+import { usePlaces } from '../lib/places';
 import { getLeanColor, getLeanLabel, getLeanSubtitle, getLeanTint } from '../lib/lean';
 
 interface LeanSliderProps {
@@ -12,28 +13,49 @@ interface LeanSliderProps {
 }
 
 export function LeanSlider({ value, onChange, editable = true, isToday = true }: LeanSliderProps) {
+  const { places } = usePlaces();
   const leanColor = getLeanColor(value);
   const tint = getLeanTint(value);
 
   return (
     <View style={styles.content}>
       <View style={styles.labels}>
-        <Text style={styles.flagLabel}>🇮🇳 India</Text>
-        <Text style={styles.flagLabel}>Australia 🇦🇺</Text>
+        <Text style={styles.flagLabel}>{places.placeA}</Text>
+        <Text style={styles.flagLabel}>{places.placeB}</Text>
       </View>
 
       {editable ? (
-        <Slider
-          style={styles.slider}
-          minimumValue={1}
-          maximumValue={10}
-          step={1}
-          value={value}
-          onValueChange={onChange}
-          minimumTrackTintColor={leanColor}
-          maximumTrackTintColor={colors.border}
-          thumbTintColor={leanColor}
-        />
+        Platform.OS === 'web' ? (
+          <View style={styles.webSliderWrap}>
+            <input
+              type="range"
+              min={1}
+              max={10}
+              step={1}
+              value={value}
+              onChange={(event: { target: { value: string } }) =>
+                onChange(Number(event.target.value))
+              }
+              style={{
+                width: '100%',
+                height: 40,
+                accentColor: leanColor,
+              }}
+            />
+          </View>
+        ) : (
+          <Slider
+            style={styles.slider}
+            minimumValue={1}
+            maximumValue={10}
+            step={1}
+            value={value}
+            onValueChange={onChange}
+            minimumTrackTintColor={leanColor}
+            maximumTrackTintColor={colors.border}
+            thumbTintColor={leanColor}
+          />
+        )
       ) : (
         <View style={styles.readOnlyTrack}>
           <View
@@ -53,8 +75,8 @@ export function LeanSlider({ value, onChange, editable = true, isToday = true }:
           <Feather name="compass" size={16} color={leanColor} />
         </View>
         <View style={styles.statusText}>
-          <Text style={[styles.statusTitle, { color: leanColor }]}>{getLeanLabel(value)}</Text>
-          <Text style={styles.statusSubtitle}>{getLeanSubtitle(value, isToday)}</Text>
+          <Text style={[styles.statusTitle, { color: leanColor }]}>{getLeanLabel(value, places)}</Text>
+          <Text style={styles.statusSubtitle}>{getLeanSubtitle(value, isToday, places)}</Text>
         </View>
       </View>
     </View>
@@ -77,6 +99,10 @@ const styles = StyleSheet.create({
   slider: {
     width: '100%',
     height: 40,
+  },
+  webSliderWrap: {
+    width: '100%',
+    paddingVertical: spacing.xs,
   },
   readOnlyTrack: {
     height: 6,

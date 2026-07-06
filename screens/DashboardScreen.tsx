@@ -10,24 +10,30 @@ import { useFocusEffect } from 'expo-router';
 import { FactorBars } from '../components/FactorBars';
 import { LeanChart } from '../components/LeanChart';
 import { MetricCard } from '../components/MetricCard';
+import { ViewingBanner } from '../components/ViewingBanner';
 import { colors, spacing } from '../constants/theme';
+import { useAuth } from '../lib/auth';
+import { usePlaces } from '../lib/places';
 import { computeFactorStats, countPivots, getLeanFlag } from '../lib/lean';
 import { getAllEntries } from '../lib/storage';
 import type { Entry } from '../lib/types';
 
 export default function DashboardScreen() {
+  const { viewingPartner, isViewingPartner, viewSelf } = useAuth();
+  const { places } = usePlaces();
+  const ownerId = viewingPartner?.id;
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const data = await getAllEntries();
+      const data = await getAllEntries(ownerId);
       setEntries(data);
     } catch {
       setEntries([]);
     }
-  }, []);
+  }, [ownerId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -61,17 +67,20 @@ export default function DashboardScreen() {
         <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
       }
     >
+      {isViewingPartner && viewingPartner && (
+        <ViewingBanner partnerEmail={viewingPartner.email} onBack={viewSelf} />
+      )}
       <View style={styles.metrics}>
         <MetricCard label="Days logged" value={String(entries.length)} />
         <MetricCard
           label="Current lean"
-          value={latest ? getLeanFlag(latest.lean) : '—'}
+          value={latest ? getLeanFlag(latest.lean, places) : '—'}
         />
         <MetricCard label="Pivots" value={String(countPivots(entries))} />
       </View>
 
       <LeanChart entries={entries} />
-      <FactorBars factors={factors} />
+      <FactorBars factors={factors} places={places} />
     </ScrollView>
   );
 }

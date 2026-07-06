@@ -3,16 +3,17 @@ import { LineChart } from 'react-native-gifted-charts';
 import { Card } from './Card';
 import { SectionHeader } from './SectionHeader';
 import { colors, spacing, typography } from '../constants/theme';
-import { getLeanColor, isSharpPivot } from '../lib/lean';
+import { getChartYLabels, getLeanColor, isSharpPivot } from '../lib/lean';
 import type { Entry } from '../lib/types';
+import { usePlaces } from '../lib/places';
 
 interface LeanChartProps {
   entries: Entry[];
 }
 
-const Y_LABELS = ['🇮🇳', '', '⚖️', '', '🇦🇺'];
-
 export function LeanChart({ entries }: LeanChartProps) {
+  const { places } = usePlaces();
+  const yLabels = getChartYLabels(places);
   const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
   const screenWidth = Dimensions.get('window').width;
   const chartWidth = screenWidth - spacing.lg * 2 - spacing.lg * 2;
@@ -63,7 +64,7 @@ export function LeanChart({ entries }: LeanChartProps) {
           noOfSections={4}
           maxValue={10}
           yAxisLabelWidth={36}
-          yAxisLabelTexts={Y_LABELS}
+          yAxisLabelTexts={yLabels}
           formatYLabel={() => ''}
           showReferenceLine1
           referenceLine1Position={5}

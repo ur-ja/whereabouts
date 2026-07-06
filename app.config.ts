@@ -27,6 +27,15 @@ const config: ExpoConfig = {
   },
   web: {
     favicon: './assets/favicon.png',
+    bundler: 'metro',
+    output: 'static',
+    name: 'Whereabouts',
+    shortName: 'Whereabouts',
+    description: 'Track where you are leaning between two places.',
+    themeColor: '#4A7FD7',
+    backgroundColor: '#F3F4F6',
+    display: 'standalone',
+    orientation: 'portrait',
   },
   plugins: ['expo-router'],
   extra: {

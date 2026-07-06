@@ -9,25 +9,29 @@ import {
 } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { EntryCard } from '../components/EntryCard';
+import { ViewingBanner } from '../components/ViewingBanner';
 import { colors, spacing, typography } from '../constants/theme';
+import { useAuth } from '../lib/auth';
 import { getAllEntries, deleteEntryByDate } from '../lib/storage';
 import { confirmClearEntry } from '../lib/confirmClear';
 import type { Entry } from '../lib/types';
 
 export default function HistoryScreen() {
   const router = useRouter();
+  const { viewingPartner, isViewingPartner, viewSelf } = useAuth();
+  const ownerId = viewingPartner?.id;
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(async () => {
     try {
-      const data = await getAllEntries();
+      const data = await getAllEntries(ownerId);
       setEntries(data);
     } catch {
       setEntries([]);
     }
-  }, []);
+  }, [ownerId]);
 
   useFocusEffect(
     useCallback(() => {
@@ -43,6 +47,7 @@ export default function HistoryScreen() {
   };
 
   const handleClear = (date: string) => {
+    if (isViewingPartner) return;
     confirmClearEntry(async () => {
       setEntries((prev) => prev.filter((e) => e.date !== date));
       try {
@@ -77,6 +82,11 @@ export default function HistoryScreen() {
       contentContainerStyle={styles.list}
       data={entries}
       keyExtractor={(item) => item.id}
+      ListHeaderComponent={
+        isViewingPartner && viewingPartner ? (
+          <ViewingBanner partnerEmail={viewingPartner.email} onBack={viewSelf} />
+        ) : null
+      }
       renderItem={({ item }) => (
         <EntryCard
           entry={item}
@@ -86,7 +96,7 @@ export default function HistoryScreen() {
               params: { date: item.date },
             })
           }
-          onClear={() => handleClear(item.date)}
+          onClear={isViewingPartner ? undefined : () => handleClear(item.date)}
         />
       )}
       ItemSeparatorComponent={() => <View style={styles.separator} />}

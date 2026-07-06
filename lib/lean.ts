@@ -1,22 +1,29 @@
 import { colors } from '../constants/theme';
-import type { Entry } from './types';
+import { DEFAULT_PLACES } from './profiles';
+import type { Entry, UserPlaces } from './types';
 
-export function getLeanLabel(lean: number): string {
-  if (lean <= 2) return 'Strongly leaning India';
-  if (lean <= 4) return 'Leaning India';
-  if (lean === 5) return 'Genuinely unsure';
-  if (lean <= 7) return 'Leaning Australia';
-  return 'Strongly leaning Australia';
+function resolvePlaces(places?: UserPlaces): UserPlaces {
+  return places ?? DEFAULT_PLACES;
 }
 
-export function getLeanSubtitle(lean: number, isToday = true): string {
+export function getLeanLabel(lean: number, places?: UserPlaces): string {
+  const { placeA, placeB } = resolvePlaces(places);
+  if (lean <= 2) return `Strongly leaning ${placeA}`;
+  if (lean <= 4) return `Leaning ${placeA}`;
+  if (lean === 5) return 'Genuinely unsure';
+  if (lean <= 7) return `Leaning ${placeB}`;
+  return `Strongly leaning ${placeB}`;
+}
+
+export function getLeanSubtitle(lean: number, isToday = true, places?: UserPlaces): string {
+  const { placeA, placeB } = resolvePlaces(places);
   if (isToday) {
-    if (lean < 5) return "You're leaning towards India today.";
-    if (lean > 5) return "You're leaning towards Australia today.";
+    if (lean < 5) return `You're leaning towards ${placeA} today.`;
+    if (lean > 5) return `You're leaning towards ${placeB} today.`;
     return "You're genuinely unsure today.";
   }
-  if (lean < 5) return 'You were leaning towards India that day.';
-  if (lean > 5) return 'You were leaning towards Australia that day.';
+  if (lean < 5) return `You were leaning towards ${placeA} that day.`;
+  if (lean > 5) return `You were leaning towards ${placeB} that day.`;
   return 'You were genuinely unsure that day.';
 }
 
@@ -32,9 +39,16 @@ export function getLeanColor(lean: number): string {
   return colors.neutral;
 }
 
-export function getLeanFlag(lean: number): string {
-  if (lean < 5) return '🇮🇳';
-  if (lean > 5) return '🇦🇺';
+function abbrevPlace(name: string): string {
+  const trimmed = name.trim();
+  if (trimmed.length <= 3) return trimmed.toUpperCase();
+  return trimmed.slice(0, 3).toUpperCase();
+}
+
+export function getLeanFlag(lean: number, places?: UserPlaces): string {
+  const { placeA, placeB } = resolvePlaces(places);
+  if (lean < 5) return abbrevPlace(placeA);
+  if (lean > 5) return abbrevPlace(placeB);
   return '⚖️';
 }
 
@@ -58,14 +72,14 @@ export function isSharpPivot(prevLean: number, currLean: number): boolean {
 }
 
 export function computeFactorStats(entries: Entry[]) {
-  const map = new Map<string, { count: number; indiaCount: number; australiaCount: number }>();
+  const map = new Map<string, { count: number; placeACount: number; placeBCount: number }>();
 
   for (const entry of entries) {
     for (const tag of entry.tags) {
-      const existing = map.get(tag) ?? { count: 0, indiaCount: 0, australiaCount: 0 };
+      const existing = map.get(tag) ?? { count: 0, placeACount: 0, placeBCount: 0 };
       existing.count++;
-      if (entry.lean < 5) existing.indiaCount++;
-      else if (entry.lean > 5) existing.australiaCount++;
+      if (entry.lean < 5) existing.placeACount++;
+      else if (entry.lean > 5) existing.placeBCount++;
       map.set(tag, existing);
     }
   }
@@ -73,4 +87,9 @@ export function computeFactorStats(entries: Entry[]) {
   return Array.from(map.entries())
     .map(([tag, stats]) => ({ tag, ...stats }))
     .sort((a, b) => b.count - a.count);
+}
+
+export function getChartYLabels(places?: UserPlaces): string[] {
+  const { placeA, placeB } = resolvePlaces(places);
+  return [abbrevPlace(placeA), '', '⚖️', '', abbrevPlace(placeB)];
 }

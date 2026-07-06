@@ -1,14 +1,15 @@
-# Where do I belong?
+# Whereabouts
 
-A personal journal app to track where you're leaning — India or Australia — and why. Log daily, spot patterns, and make sense of a big life decision over time.
+A personal journal PWA to track where you're leaning between two places — and why. Log daily, spot patterns, and share your journal with a partner if you choose.
+
+Works on **iPhone, Android, and desktop** — install from the browser or add to your home screen.
 
 ## Stack
 
-- Expo (React Native, TypeScript)
-- Supabase (persistent storage)
-- Expo Router (bottom tab navigation)
-- react-native-gifted-charts (analytics charts)
-- @react-native-community/slider
+- Expo (React Native Web) + TypeScript
+- Expo Router
+- Supabase (auth + database)
+- Deployed on **Vercel**
 
 ## Setup
 
@@ -18,100 +19,69 @@ A personal journal app to track where you're leaning — India or Australia — 
 npm install
 ```
 
-### 2. Configure Supabase
+### 2. Supabase project
 
-Copy the example env file and fill in your credentials:
+1. Create a project at [supabase.com](https://supabase.com)
+2. Copy `.env.example` → `.env` and set:
+   - `EXPO_PUBLIC_SUPABASE_URL`
+   - `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+3. Run **`supabase/schema.sql`** in the SQL Editor (creates tables + RLS for multi-user + sharing)
+4. If you have existing anonymous entries to migrate, sign up first then run **`supabase/migrate-data.sql`**
 
-```bash
-cp .env.example .env
-```
+### 3. Supabase Auth settings
 
-Set `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` from your Supabase project settings.
+In **Authentication → Providers → Email**:
 
-### 3. Create the database table
+- Enable email provider
+- For personal use, you may disable **Confirm email** so sign-up works instantly
 
-Run this SQL in the Supabase SQL editor:
+Add your Vercel URL to **Authentication → URL configuration → Redirect URLs** when deployed.
 
-```sql
-create table entries (
-  id uuid primary key default gen_random_uuid(),
-  date date not null unique,
-  lean integer not null check (lean >= 1 and lean <= 10),
-  tags text[] default '{}',
-  note text default '',
-  created_at timestamptz default now()
-);
-
--- Required: allow the app to read/write without auth
-alter table entries enable row level security;
-
-create policy "Allow anonymous access"
-on entries for all
-to anon
-using (true)
-with check (true);
-```
-
-### 4. Run the app
+### 4. Run locally
 
 ```bash
-npx expo start
+npm run web
 ```
 
-Scan the QR code with **Expo Go** on your phone to preview. This project uses **Expo SDK 54** to match the current App Store version of Expo Go.
+Open [http://localhost:8081](http://localhost:8081)
 
-**Important:** Stop any old dev servers first (`Ctrl+C`), then start fresh with a cleared cache:
+## Deploy to Vercel
 
-```bash
-npx expo start --clear
-```
+1. Push this repo to GitHub
+2. Import project in [vercel.com](https://vercel.com)
+3. Add environment variables:
+   - `EXPO_PUBLIC_SUPABASE_URL`
+   - `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+4. Deploy (uses `npm run build:web` → `dist/`)
 
-### 5. Install permanently on your iPhone
+On your phone: open the Vercel URL → **Share → Add to Home Screen** (iOS) or **Install app** (Android).
 
-See **[DEPLOY.md](./DEPLOY.md)** for the full guide: every account to create, Mac steps, iPhone steps, AltStore setup, EAS build, and troubleshooting.
+## Accounts & sharing
 
-Quick version:
-
-```bash
-npm install -g eas-cli && eas login && eas init
-eas device:create
-eas env:create --environment preview --name EXPO_PUBLIC_SUPABASE_URL --value "YOUR_URL"
-eas env:create --environment preview --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value "YOUR_KEY"
-npm run build:ios
-```
-
-Download the `.ipa` → AirDrop to iPhone → install via AltStore.
-
----
+- **Sign up** with email + password — your entries are private to your account
+- **Settings → Places you're comparing** — name your two places (defaults: India / Australia)
+- **Settings → Share with someone** — invite a partner by email
+- They sign up with that email, accept the invite, then **View journal** (read-only)
+- Each person logs their own entries; sharing is one-way per invite (both can invite each other)
 
 ## Project structure
 
 ```
-app/                  # Expo Router navigation
-  (tabs)/             # Log, Dashboard, History tabs
-components/           # Reusable UI components
-constants/            # Theme tokens, predefined tags
-lib/                  # Supabase client, storage, lean helpers
+app/                  # Expo Router (login + tabs)
 screens/              # Screen implementations
+components/           # UI components
+lib/                  # Auth, Supabase, storage, sharing
+supabase/schema.sql   # Database schema + RLS
 ```
-
-## Offline-first (future)
-
-To add offline support later:
-
-1. Install `@react-native-async-storage/async-storage`
-2. In `lib/storage.ts`, read/write a local cache of the last 30 entries on every fetch/save
-3. On app launch, show cached data immediately while syncing to Supabase in the background
-4. Queue failed writes and retry when connectivity returns
 
 ## Lean scale
 
+Each end of the slider is one of your two places (set in Settings). The scale is the same for everyone:
+
 | Value | Meaning |
 |-------|---------|
-| 1–2   | Strongly leaning India |
-| 3–4   | Leaning India |
+| 1–2   | Strongly leaning place A |
+| 3–4   | Leaning place A |
 | 5     | Genuinely unsure |
-| 6–7   | Leaning Australia |
-| 8–10  | Strongly leaning Australia |
-
-A **pivot** is when lean crosses the midpoint (5) between consecutive entries.
+| 6–7   | Leaning place B |
+| 8–10  | Strongly leaning place B |

@@ -3,6 +3,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { Feather } from '@expo/vector-icons';
 import { colors, radius, shadow, spacing, typography } from '../constants/theme';
 import { getLeanColor, getLeanLabel } from '../lib/lean';
+import { usePlaces } from '../lib/places';
 import { formatDisplayDate } from '../lib/storage';
 import type { Entry } from '../lib/types';
 
@@ -14,6 +15,7 @@ interface EntryCardProps {
 
 export function EntryCard({ entry, onPress, onClear }: EntryCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const { places } = usePlaces();
   const leanColor = getLeanColor(entry.lean);
 
   return (
@@ -36,7 +38,7 @@ export function EntryCard({ entry, onPress, onClear }: EntryCardProps) {
       </View>
       <View style={[styles.leanPill, { backgroundColor: `${leanColor}18`, borderColor: leanColor }]}>
         <Text style={[styles.leanText, { color: leanColor }]}>
-          {getLeanLabel(entry.lean)}
+          {getLeanLabel(entry.lean, places)}
         </Text>
       </View>
       {entry.tags.length > 0 && (

@@ -2,13 +2,14 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Card } from './Card';
 import { SectionHeader } from './SectionHeader';
 import { colors, radius, spacing } from '../constants/theme';
-import type { FactorStat } from '../lib/types';
+import type { FactorStat, UserPlaces } from '../lib/types';
 
 interface FactorBarsProps {
   factors: FactorStat[];
+  places: UserPlaces;
 }
 
-export function FactorBars({ factors }: FactorBarsProps) {
+export function FactorBars({ factors, places }: FactorBarsProps) {
   if (factors.length === 0) {
     return null;
   }
@@ -21,8 +22,8 @@ export function FactorBars({ factors }: FactorBarsProps) {
       <SectionHeader icon="bar-chart-2" title="Top factors" />
       <View style={styles.list}>
         {top.map((factor) => {
-          const indiaHeavy = factor.indiaCount >= factor.australiaCount;
-          const barColor = indiaHeavy ? colors.india : colors.australia;
+          const placeAHeavy = factor.placeACount >= factor.placeBCount;
+          const barColor = placeAHeavy ? colors.india : colors.australia;
           const widthPct = (factor.count / maxCount) * 100;
 
           return (
@@ -46,11 +47,11 @@ export function FactorBars({ factors }: FactorBarsProps) {
       <View style={styles.legend}>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: colors.india }]} />
-          <Text style={styles.legendText}>India-leaning days</Text>
+          <Text style={styles.legendText}>{places.placeA}-leaning days</Text>
         </View>
         <View style={styles.legendItem}>
           <View style={[styles.legendDot, { backgroundColor: colors.australia }]} />
-          <Text style={styles.legendText}>Australia-leaning days</Text>
+          <Text style={styles.legendText}>{places.placeB}-leaning days</Text>
         </View>
       </View>
     </Card>
