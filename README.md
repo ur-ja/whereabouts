@@ -25,6 +25,7 @@ npm install
 2. Copy `.env.example` → `.env` and set:
    - `EXPO_PUBLIC_SUPABASE_URL`
    - `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+   - `EXPO_PUBLIC_APP_URL` (your deployed URL, e.g. `https://whereabouts-eight.vercel.app`)
 3. Run **`supabase/schema.sql`** in the SQL Editor (creates tables + RLS for multi-user + sharing)
 4. If you have existing anonymous entries to migrate, sign up first then run **`supabase/migrate-data.sql`**
 
@@ -35,7 +36,10 @@ In **Authentication → Providers → Email**:
 - Enable email provider
 - For personal use, you may disable **Confirm email** so sign-up works instantly
 
-Add your Vercel URL to **Authentication → URL configuration → Redirect URLs** when deployed (include `/reset-password`, e.g. `https://your-app.vercel.app/reset-password`).
+In **Authentication → URL configuration**:
+
+- **Site URL:** your production URL (e.g. `https://whereabouts-eight.vercel.app`)
+- **Redirect URLs:** add `https://your-app.vercel.app/reset-password`
 
 ### 4. Run locally
 
@@ -52,6 +56,7 @@ Open [http://localhost:8081](http://localhost:8081)
 3. Add environment variables:
    - `EXPO_PUBLIC_SUPABASE_URL`
    - `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+   - `EXPO_PUBLIC_APP_URL` (e.g. `https://whereabouts-eight.vercel.app` — used for password reset links)
 
    **Important:** Expo bakes `EXPO_PUBLIC_*` into the static bundle at **build time**. In Vercel, enable these for **Production** (and Preview if you use branch deploys), then redeploy.
 4. Deploy (uses `npm run build:web` → `dist/`)

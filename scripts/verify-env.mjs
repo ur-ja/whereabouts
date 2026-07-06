@@ -1,4 +1,8 @@
-const required = ['EXPO_PUBLIC_SUPABASE_URL', 'EXPO_PUBLIC_SUPABASE_ANON_KEY'];
+const required = [
+  'EXPO_PUBLIC_SUPABASE_URL',
+  'EXPO_PUBLIC_SUPABASE_ANON_KEY',
+  'EXPO_PUBLIC_APP_URL',
+];
 const missing = required.filter((key) => !process.env[key]?.trim());
 
 if (missing.length > 0) {
