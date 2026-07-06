@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   KeyboardAvoidingView,
   Platform,
@@ -11,14 +11,24 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { colors, radius, spacing, typography } from '../constants/theme';
+import { useAuth } from '../lib/auth';
 import { supabase } from '../lib/supabase';
 
 export default function ResetPasswordScreen() {
   const router = useRouter();
+  const { clearPasswordRecovery } = useAuth();
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || typeof window === 'undefined') return;
+    const hash = window.location.hash;
+    if (/otp_expired|access_denied/.test(hash)) {
+      setError('Reset link expired. Request a new one from sign in.');
+    }
+  }, []);
 
   const handleSubmit = async () => {
     setError(null);
@@ -42,6 +52,7 @@ export default function ResetPasswordScreen() {
     try {
       const { error: updateError } = await supabase.auth.updateUser({ password });
       if (updateError) throw updateError;
+      clearPasswordRecovery();
       router.replace('/(tabs)/log');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not update password');

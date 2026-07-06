@@ -22,25 +22,51 @@ interface AuthContextValue {
   session: Session | null;
   user: User | null;
   loading: boolean;
+  needsPasswordReset: boolean;
   viewingPartner: ViewingPartner | null;
   isViewingPartner: boolean;
   viewPartner: (partner: ViewingPartner) => void;
   viewSelf: () => void;
   signOut: () => Promise<void>;
+  clearPasswordRecovery: () => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
+function hasRecoveryHash(): boolean {
+  return (
+    Platform.OS === 'web' &&
+    typeof window !== 'undefined' &&
+    /type=recovery/.test(window.location.hash)
+  );
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [needsPasswordReset, setNeedsPasswordReset] = useState(hasRecoveryHash);
   const [viewingPartner, setViewingPartner] = useState<ViewingPartner | null>(null);
   const router = useRouter();
   const segments = useSegments();
 
+  const clearPasswordRecovery = useCallback(() => {
+    setNeedsPasswordReset(false);
+    if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location.hash) {
+      window.history.replaceState(null, '', window.location.pathname);
+    }
+  }, []);
+
+  const beginPasswordRecovery = useCallback(() => {
+    setNeedsPasswordReset(true);
+    router.replace('/reset-password');
+  }, [router]);
+
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
+      if (hasRecoveryHash()) {
+        setNeedsPasswordReset(true);
+      }
       setLoading(false);
     });
 
@@ -48,15 +74,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setSession(nextSession);
       if (!nextSession) {
         setViewingPartner(null);
+        setNeedsPasswordReset(false);
         return;
       }
-      if (event === 'PASSWORD_RECOVERY') {
-        router.replace('/reset-password');
+      if (event === 'PASSWORD_RECOVERY' || hasRecoveryHash()) {
+        beginPasswordRecovery();
       }
     });
 
     return () => subscription.subscription.unsubscribe();
-  }, []);
+  }, [beginPasswordRecovery]);
 
   useEffect(() => {
     if (loading) return;
@@ -64,15 +91,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const segment = segments[0];
     const onLogin = segment === 'login';
     const onResetPassword = segment === 'reset-password';
-    const hasRecoveryHash =
-      Platform.OS === 'web' &&
-      typeof window !== 'undefined' &&
-      /access_token|type=recovery/.test(window.location.hash);
+
+    if (needsPasswordReset) {
+      if (!onResetPassword) {
+        router.replace('/reset-password');
+      }
+      return;
+    }
 
     if (!session && onResetPassword) {
-      if (!hasRecoveryHash) {
-        router.replace('/login');
-      }
+      router.replace('/login');
       return;
     }
 
@@ -84,7 +112,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (session && onLogin) {
       router.replace('/(tabs)/log');
     }
-  }, [session, loading, segments, router]);
+  }, [session, loading, segments, router, needsPasswordReset]);
 
   const viewPartner = useCallback((partner: ViewingPartner) => {
     setViewingPartner(partner);
@@ -104,13 +132,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       session,
       user: session?.user ?? null,
       loading,
+      needsPasswordReset,
       viewingPartner,
       isViewingPartner: viewingPartner !== null,
       viewPartner,
       viewSelf,
       signOut,
+      clearPasswordRecovery,
     }),
-    [session, loading, viewingPartner, viewPartner, viewSelf, signOut],
+    [
+      session,
+      loading,
+      needsPasswordReset,
+      viewingPartner,
+      viewPartner,
+      viewSelf,
+      signOut,
+      clearPasswordRecovery,
+    ],
   );
 
   if (loading) {
