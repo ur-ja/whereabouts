@@ -52,6 +52,8 @@ Open [http://localhost:8081](http://localhost:8081)
 3. Add environment variables:
    - `EXPO_PUBLIC_SUPABASE_URL`
    - `EXPO_PUBLIC_SUPABASE_ANON_KEY`
+
+   **Important:** Expo bakes `EXPO_PUBLIC_*` into the static bundle at **build time**. In Vercel, enable these for **Production** (and Preview if you use branch deploys), then redeploy.
 4. Deploy (uses `npm run build:web` → `dist/`)
 
 On your phone: open the Vercel URL → **Share → Add to Home Screen** (iOS) or **Install app** (Android).

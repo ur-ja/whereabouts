@@ -68,9 +68,6 @@ export default function LoginScreen() {
       >
         <View style={styles.hero}>
           <Text style={styles.title}>Whereabouts</Text>
-          <Text style={styles.subtitle}>
-            Your private journal for tracking which of two places you&apos;re leaning towards.
-          </Text>
         </View>
 
         <View style={styles.card}>
@@ -102,7 +99,6 @@ export default function LoginScreen() {
             textContentType="emailAddress"
             value={email}
             onChangeText={setEmail}
-            placeholder="you@example.com"
             placeholderTextColor={colors.textMuted}
           />
 
@@ -113,7 +109,6 @@ export default function LoginScreen() {
             textContentType={mode === 'signup' ? 'newPassword' : 'password'}
             value={password}
             onChangeText={setPassword}
-            placeholder="••••••••"
             placeholderTextColor={colors.textMuted}
           />
 
@@ -130,10 +125,6 @@ export default function LoginScreen() {
             </Text>
           </Pressable>
         </View>
-
-        <Text style={styles.hint}>
-          Each account has its own journal. Share with a partner from Settings after signing in.
-        </Text>
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -151,19 +142,13 @@ const styles = StyleSheet.create({
     alignSelf: 'center',
   },
   hero: {
-    gap: spacing.sm,
     alignItems: 'center',
+    marginBottom: spacing.xs,
   },
   title: {
     fontSize: typography.display,
     fontWeight: '800',
     color: colors.text,
-  },
-  subtitle: {
-    fontSize: typography.body,
-    color: colors.textMuted,
-    textAlign: 'center',
-    lineHeight: 24,
   },
   card: {
     backgroundColor: colors.card,
@@ -191,15 +176,17 @@ const styles = StyleSheet.create({
   tabText: {
     fontSize: 14,
     fontWeight: '600',
-    color: colors.textMuted,
+    color: colors.text,
+    opacity: 0.55,
   },
   tabTextActive: {
     color: colors.accent,
+    opacity: 1,
   },
   label: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '600',
-    color: colors.textMuted,
+    color: colors.text,
     marginBottom: -spacing.sm,
   },
   input: {
@@ -234,11 +221,5 @@ const styles = StyleSheet.create({
   message: {
     color: colors.india,
     fontSize: 14,
-  },
-  hint: {
-    fontSize: 13,
-    color: colors.textMuted,
-    textAlign: 'center',
-    lineHeight: 20,
   },
 });
