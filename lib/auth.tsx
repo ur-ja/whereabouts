@@ -9,7 +9,7 @@ import {
 } from 'react';
 import type { Session, User } from '@supabase/supabase-js';
 import { useRouter, useSegments } from 'expo-router';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, Platform, StyleSheet, View } from 'react-native';
 import { colors } from '../constants/theme';
 import { supabase } from './supabase';
 
@@ -44,10 +44,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(false);
     });
 
-    const { data: subscription } = supabase.auth.onAuthStateChange((_event, nextSession) => {
+    const { data: subscription } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
       if (!nextSession) {
         setViewingPartner(null);
+        return;
+      }
+      if (event === 'PASSWORD_RECOVERY') {
+        router.replace('/reset-password');
       }
     });
 
@@ -57,14 +61,27 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (loading) return;
 
-    const inAuthGroup = segments[0] === 'login';
+    const segment = segments[0];
+    const onLogin = segment === 'login';
+    const onResetPassword = segment === 'reset-password';
+    const hasRecoveryHash =
+      Platform.OS === 'web' &&
+      typeof window !== 'undefined' &&
+      /access_token|type=recovery/.test(window.location.hash);
 
-    if (!session && !inAuthGroup) {
+    if (!session && onResetPassword) {
+      if (!hasRecoveryHash) {
+        router.replace('/login');
+      }
+      return;
+    }
+
+    if (!session && !onLogin) {
       router.replace('/login');
       return;
     }
 
-    if (session && inAuthGroup) {
+    if (session && onLogin) {
       router.replace('/(tabs)/log');
     }
   }, [session, loading, segments, router]);

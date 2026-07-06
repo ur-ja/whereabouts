@@ -10,9 +10,10 @@ import {
   View,
 } from 'react-native';
 import { colors, radius, spacing, typography } from '../constants/theme';
+import { getAuthRedirectUrl } from '../lib/authRedirect';
 import { supabase } from '../lib/supabase';
 
-type Mode = 'signin' | 'signup';
+type Mode = 'signin' | 'signup' | 'forgot';
 
 export default function LoginScreen() {
   const [mode, setMode] = useState<Mode>('signin');
@@ -22,14 +23,45 @@ export default function LoginScreen() {
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
+  const switchMode = (next: Mode) => {
+    setMode(next);
+    setError(null);
+    setMessage(null);
+    if (next === 'forgot') {
+      setPassword('');
+    }
+  };
+
   const handleSubmit = async () => {
     setLoading(true);
     setError(null);
     setMessage(null);
 
     const trimmedEmail = email.trim().toLowerCase();
-    if (!trimmedEmail || !password) {
-      setError('Enter email and password');
+
+    if (!trimmedEmail) {
+      setError('Enter your email');
+      setLoading(false);
+      return;
+    }
+
+    if (mode === 'forgot') {
+      try {
+        const { error: resetError } = await supabase.auth.resetPasswordForEmail(trimmedEmail, {
+          redirectTo: getAuthRedirectUrl('/reset-password'),
+        });
+        if (resetError) throw resetError;
+        setMessage('Check your email for a reset link.');
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Could not send reset link');
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
+
+    if (!password) {
+      setError('Enter your password');
       setLoading(false);
       return;
     }
@@ -42,7 +74,7 @@ export default function LoginScreen() {
         });
         if (signUpError) throw signUpError;
         setMessage('Account created. You can sign in now.');
-        setMode('signin');
+        switchMode('signin');
       } else {
         const { error: signInError } = await supabase.auth.signInWithPassword({
           email: trimmedEmail,
@@ -56,6 +88,9 @@ export default function LoginScreen() {
       setLoading(false);
     }
   };
+
+  const submitLabel =
+    loading ? 'Please wait…' : mode === 'signup' ? 'Create account' : mode === 'forgot' ? 'Send reset link' : 'Sign in';
 
   return (
     <KeyboardAvoidingView
@@ -71,24 +106,30 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.card}>
-          <View style={styles.tabs}>
-            <Pressable
-              style={[styles.tab, mode === 'signin' && styles.tabActive]}
-              onPress={() => setMode('signin')}
-            >
-              <Text style={[styles.tabText, mode === 'signin' && styles.tabTextActive]}>
-                Sign in
-              </Text>
+          {mode !== 'forgot' ? (
+            <View style={styles.tabs}>
+              <Pressable
+                style={[styles.tab, mode === 'signin' && styles.tabActive]}
+                onPress={() => switchMode('signin')}
+              >
+                <Text style={[styles.tabText, mode === 'signin' && styles.tabTextActive]}>
+                  Sign in
+                </Text>
+              </Pressable>
+              <Pressable
+                style={[styles.tab, mode === 'signup' && styles.tabActive]}
+                onPress={() => switchMode('signup')}
+              >
+                <Text style={[styles.tabText, mode === 'signup' && styles.tabTextActive]}>
+                  Sign up
+                </Text>
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable onPress={() => switchMode('signin')} style={styles.backRow}>
+              <Text style={styles.backText}>← Sign in</Text>
             </Pressable>
-            <Pressable
-              style={[styles.tab, mode === 'signup' && styles.tabActive]}
-              onPress={() => setMode('signup')}
-            >
-              <Text style={[styles.tabText, mode === 'signup' && styles.tabTextActive]}>
-                Sign up
-              </Text>
-            </Pressable>
-          </View>
+          )}
 
           <Text style={styles.label}>Email</Text>
           <TextInput
@@ -102,15 +143,26 @@ export default function LoginScreen() {
             placeholderTextColor={colors.textMuted}
           />
 
-          <Text style={styles.label}>Password</Text>
-          <TextInput
-            style={styles.input}
-            secureTextEntry
-            textContentType={mode === 'signup' ? 'newPassword' : 'password'}
-            value={password}
-            onChangeText={setPassword}
-            placeholderTextColor={colors.textMuted}
-          />
+          {mode !== 'forgot' ? (
+            <>
+              <View style={styles.passwordRow}>
+                <Text style={styles.label}>Password</Text>
+                {mode === 'signin' ? (
+                  <Pressable onPress={() => switchMode('forgot')} hitSlop={8}>
+                    <Text style={styles.forgotText}>Forgot password?</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+              <TextInput
+                style={styles.input}
+                secureTextEntry
+                textContentType={mode === 'signup' ? 'newPassword' : 'password'}
+                value={password}
+                onChangeText={setPassword}
+                placeholderTextColor={colors.textMuted}
+              />
+            </>
+          ) : null}
 
           {error ? <Text style={styles.error}>{error}</Text> : null}
           {message ? <Text style={styles.message}>{message}</Text> : null}
@@ -120,9 +172,7 @@ export default function LoginScreen() {
             onPress={handleSubmit}
             disabled={loading}
           >
-            <Text style={styles.buttonText}>
-              {loading ? 'Please wait…' : mode === 'signup' ? 'Create account' : 'Sign in'}
-            </Text>
+            <Text style={styles.buttonText}>{submitLabel}</Text>
           </Pressable>
         </View>
       </ScrollView>
@@ -183,11 +233,29 @@ const styles = StyleSheet.create({
     color: colors.accent,
     opacity: 1,
   },
+  backRow: {
+    alignSelf: 'flex-start',
+  },
+  backText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.accent,
+  },
+  passwordRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: -spacing.sm,
+  },
   label: {
     fontSize: 14,
     fontWeight: '600',
     color: colors.text,
-    marginBottom: -spacing.sm,
+  },
+  forgotText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: colors.accent,
   },
   input: {
     backgroundColor: colors.background,

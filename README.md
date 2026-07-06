@@ -35,7 +35,7 @@ In **Authentication → Providers → Email**:
 - Enable email provider
 - For personal use, you may disable **Confirm email** so sign-up works instantly
 
-Add your Vercel URL to **Authentication → URL configuration → Redirect URLs** when deployed.
+Add your Vercel URL to **Authentication → URL configuration → Redirect URLs** when deployed (include `/reset-password`, e.g. `https://your-app.vercel.app/reset-password`).
 
 ### 4. Run locally
 
