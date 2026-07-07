@@ -37,12 +37,15 @@ using (
 create table if not exists data_shares (
   id uuid primary key default gen_random_uuid(),
   owner_id uuid not null references auth.users(id) on delete cascade,
+  owner_email text,
   partner_id uuid references auth.users(id) on delete cascade,
   invitee_email text not null,
   status text not null default 'pending' check (status in ('pending', 'accepted', 'declined')),
   created_at timestamptz default now(),
   unique (owner_id, invitee_email)
 );
+
+alter table data_shares add column if not exists owner_email text;
 
 alter table data_shares enable row level security;
 

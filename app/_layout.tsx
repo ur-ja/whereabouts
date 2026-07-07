@@ -11,6 +11,7 @@ export default function RootLayout() {
         <Stack screenOptions={{ headerShown: false }}>
           <Stack.Screen name="login" />
           <Stack.Screen name="reset-password" />
+          <Stack.Screen name="partner-summary" />
           <Stack.Screen name="(tabs)" />
         </Stack>
       </PlacesProvider>

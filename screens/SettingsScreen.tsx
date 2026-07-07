@@ -8,7 +8,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 import { Card } from '../components/Card';
 import { SectionHeader } from '../components/SectionHeader';
 import { Toast } from '../components/Toast';
@@ -27,7 +27,8 @@ import {
 import type { DataShare } from '../lib/types';
 
 export default function SettingsScreen() {
-  const { user, signOut, viewPartner, isViewingPartner } = useAuth();
+  const router = useRouter();
+  const { user, signOut, isViewingPartner } = useAuth();
   const { places, savePlaces } = usePlaces();
   const [shares, setShares] = useState<DataShare[]>([]);
   const [inviteEmail, setInviteEmail] = useState('');
@@ -228,10 +229,13 @@ export default function SettingsScreen() {
                   <Text style={styles.rowText}>{partner.email}</Text>
                   <Pressable
                     onPress={() =>
-                      viewPartner({ id: partner.ownerId, email: 'shared journal' })
+                      router.push({
+                        pathname: '/partner-summary',
+                        params: { ownerId: partner.ownerId, email: partner.email },
+                      })
                     }
                   >
-                    <Text style={styles.link}>View journal</Text>
+                    <Text style={styles.link}>View summary</Text>
                   </Pressable>
                 </View>
               ))}

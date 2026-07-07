@@ -29,6 +29,7 @@ export async function invitePartner(email: string): Promise<DataShare> {
     .from('data_shares')
     .insert({
       owner_id: user.id,
+      owner_email: user.email?.toLowerCase() ?? null,
       invitee_email: normalized,
       status: 'pending',
     })
@@ -102,5 +103,5 @@ export function getPartnersWhoSharedWithMe(
 ): { ownerId: string; email: string }[] {
   return shares
     .filter((s) => s.status === 'accepted' && s.partner_id === myUserId)
-    .map((s) => ({ ownerId: s.owner_id, email: s.invitee_email }));
+    .map((s) => ({ ownerId: s.owner_id, email: s.owner_email ?? 'Partner' }));
 }

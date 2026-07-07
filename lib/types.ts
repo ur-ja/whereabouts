@@ -45,6 +45,7 @@ export interface DataShare {
   id: string;
   owner_id: string;
   partner_id: string | null;
+  owner_email: string | null;
   invitee_email: string;
   status: ShareStatus;
   created_at: string;
