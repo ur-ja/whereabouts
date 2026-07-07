@@ -57,6 +57,13 @@ export default function PartnerSummaryScreen() {
   const latest = entries[0];
   const factors = computeFactorStats(entries);
   const partnerLabel = email ?? 'Partner';
+  const currentLeanMetric = latest
+    ? latest.lean === 5
+      ? 'Unsure'
+      : latest.lean < 5
+        ? places.placeA
+        : places.placeB
+    : '—';
 
   return (
     <ScrollView
@@ -78,10 +85,7 @@ export default function PartnerSummaryScreen() {
         <>
           <View style={styles.metrics}>
             <MetricCard label="Days logged" value={String(entries.length)} />
-            <MetricCard
-              label="Current lean"
-              value={latest ? getLeanLabel(latest.lean, places).replace(/^Strongly /, '') : '—'}
-            />
+            <MetricCard label="Current lean" value={currentLeanMetric} />
             <MetricCard label="Pivots" value={String(countPivots(entries))} />
           </View>
 
